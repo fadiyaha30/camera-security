@@ -1,0 +1,92 @@
+import cv2
+from datetime import datetime
+import requests
+
+ # initialize counter (outside while loop)
+
+static_back = None
+motion_list = [ None, None ]
+
+
+#awokokok bisa dari video yutube
+
+#video = cv2.VideoCapture("https://rr5---sn-npoldn7z.googlevideo.com/videoplayback?expire=1655814071&ei=V2OxYsSnG_X63LUP5pixyAc&ip=36.82.99.251&id=o-AGKBiiiqetrruWTJCvpp0GYzQLJ7sXGNE3GkDWBzJeIz&itag=18&source=youtube&requiressl=yes&gcr=id&spc=4ocVC7tmEIB8-bw6Vv5df8m6KryqGz8&vprv=1&mime=video%2Fmp4&ns=mo_7P_w3CjJmFzBZnzEy884G&gir=yes&clen=18013217&ratebypass=yes&dur=248.960&lmt=1651976004475432&fexp=24001373,24007246&c=WEB&txp=4530434&n=HmMf6TWCTEihDw&sparams=expire%2Cei%2Cip%2Cid%2Citag%2Csource%2Crequiressl%2Cgcr%2Cspc%2Cvprv%2Cmime%2Cns%2Cgir%2Cclen%2Cratebypass%2Cdur%2Clmt&sig=AOq0QJ8wRAIgd_MDFTgrE6mdRos-_RfClB9mAsgejCnJvIKyeqzrxncCIErxRRS4HClMwUWcVIo8k1o306x_vE2SNfJf4DJNoH8U&redirect_counter=1&rm=sn-2uuxa3vh-3ovz7e&req_id=5be8f7786229a3ee&cms_redirect=yes&cmsv=e&ipbypass=yes&mh=tC&mm=29&mn=sn-npoldn7z&ms=rdu&mt=1655792447&mv=m&mvi=5&pl=22&lsparams=ipbypass,mh,mm,mn,ms,mv,mvi,pl&lsig=AG3C_xAwRQIgJS8eNC_sGrSumBE9tC-G4pI9WfCU93pMrRpmJAoIRGwCIQDFskxpKRbiBmC2xFAAkQFQTUfzPBqF6RJUwKAmZJvwZg%3D%3D")
+#video = cv2.VideoCapture("https://agungsurya.is3.cloudhost.id/people.mp4?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=M8ZGSA5AWHHOVRXQMDGX/20220621/us-east-1/s3/aws4_request&X-Amz-Date=20220621T063433Z&X-Amz-Expires=3600&X-Amz-SignedHeaders=host&X-Amz-Signature=59299eca0cb5173239f53152edb7acfb81ad19c7bc22dee5b0091e8344a2d718")
+video = cv2.VideoCapture("https://agungsurya.is3.cloudhost.id/vid.mp4?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=M8ZGSA5AWHHOVRXQMDGX/20220701/us-east-1/s3/aws4_request&X-Amz-Date=20220701T092337Z&X-Amz-Expires=604800&X-Amz-SignedHeaders=host&X-Amz-Signature=eaf935517489dc80f370ba31e98dabadea326346505557c7328ea8ec8a232746")
+#video = cv2.VideoCapture(0)
+
+email = "http://103.179.56.129:7800/hook?access_key=31DMIXWy7hCeX5JcBEbkZ0BTqdADi7eazfjp8B3j5XfDb8JL"
+url = "http://localhost/RTC/belajar/index.php/simpan/sensor?data=pergerakan terdeteksi"
+url2 = "http://localhost/RTC/belajar/index.php/simpan/sensor?data=pergerakan hilang dari kamera"
+#url = "https://discord.com/api/webhooks/917076379655352450/3IH50QEcsL3BY6J-Pd_ifKUjcGnOkLB-aZLEvwsBWGKLU-gEjqZxCMvc_gO-0jaNTjBO"
+
+data = {
+
+    "username" : ("agungsurya")
+}
+
+data["embeds"] = [
+    {
+        "description" : "wajah terdeteksi",
+        "title" : "audit"
+    }
+]
+
+
+
+#def testing():
+#	count = 0
+#	vs.set(cv2.CAP_PROP_POS_MSEC,(count*1000))    # wait 1 sec between each capture
+#	cv2.imwrite('Motion_det'+str(count)+'.jpg',frame)      # save frame as JPEG file
+#	count+=1
+
+while True:
+	check, frame = video.read()
+	motion = 0
+	gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+	gray = cv2.GaussianBlur(gray, (21, 21), 0)
+
+	if static_back is None:
+		static_back = gray
+		continue
+
+	diff_frame = cv2.absdiff(static_back, gray)
+
+	thresh_frame = cv2.threshold(diff_frame, 30, 255, cv2.THRESH_BINARY)[1]
+	thresh_frame = cv2.dilate(thresh_frame, None, iterations = 2)
+
+	cnts,_ = cv2.findContours(thresh_frame.copy(),
+					cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+	for contour in cnts:
+		if cv2.contourArea(contour) < 10000:
+			continue
+		motion = 1
+		(x, y, w, h) = cv2.boundingRect(contour)
+		cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 3)
+
+	motion_list.append(motion)
+
+	motion_list = motion_list[-2:]
+
+	if motion_list[-1] == 1 and motion_list[-2] == 0:
+		#result = requests.post(url)#, #requests.post(email)
+		#testing()
+		print("pergerakan terdeteksi")
+        
+#result = requests.post(url, json = data)
+
+	if motion_list[-1] == 0 and motion_list[-2] == 1:
+		#result = requests.post(url2)
+		print ("pergerakan berhenti")
+	cv2.imshow("Color Frame", frame)   ##### kunci is key
+	key = cv2.waitKey(1)
+
+	if key == ord('q'):
+		if motion == 1:
+			print("baybay")
+		break
+
+
+video.release()
+cv2.destroyAllWindows()
